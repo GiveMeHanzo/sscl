@@ -3,11 +3,13 @@
    实现离线缓存，确保无网络时应用仍可正常加载
 
    ⚠️ 部署更新说明：
-   每次推送新代码后，必须修改下方 CACHE_NAME 的版本号
-   （例如 v2 → v3），否则浏览器会继续使用旧缓存。
+   每次推送新代码后，修改下方 CACHE_VERSION 后缀（例如 -a → -b），
+   否则浏览器会继续使用旧缓存。也可改成日期格式如 20260622。
    ============================================================ */
 
-const CACHE_NAME = 'clapperboard-v2';
+// ★ 改这里：每次部署 +1 或者改成今天的日期
+const CACHE_VERSION = '20260622-a';
+const CACHE_NAME = 'clapperboard-' + CACHE_VERSION;
 const APP_SHELL = [
   './',
   './index.html',
