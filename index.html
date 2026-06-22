@@ -1,0 +1,2599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="影视剧组电子场记单 — DIT 现场数据管理工具">
+<meta name="theme-color" content="#1a1a2e">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="./manifest.json">
+
+<!-- Apple iOS / iPadOS meta tags -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="场记单">
+<meta name="format-detection" content="telephone=no">
+
+<!-- Apple touch icons (dynamic, generated via JS) -->
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+
+<title>电子场记单</title>
+<style>
+/* ============================================================
+   CSS Reset & Base
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg: #f0f2f5;
+  --color-surface: #ffffff;
+  --color-primary: #1a73e8;
+  --color-primary-dark: #1558b0;
+  --color-danger: #d93025;
+  --color-text: #202124;
+  --color-text-secondary: #5f6368;
+  --color-border: #dadce0;
+  --color-table-header: #e8eaed;
+  --color-table-stripe: #f8f9fa;
+  --color-focus-bg: #e8f0fe;
+  --color-invalid: #fce8e6;
+  --color-warning-bg: #fef7e0;
+  --color-warning-border: #f9ab00;
+  --radius: 8px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.12);
+  --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --touch-target: 44px;
+}
+
+html {
+  font-size: 15px;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  padding: 10px;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#app {
+  max-width: 1340px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 20px);
+}
+
+/* ============================================================
+   Global Header (Project Title only)
+   ============================================================ */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #fff;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.book-symbol {
+  color: #ffd54f;
+}
+
+.title-display {
+  color: #ffd54f;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  min-width: 60px;
+  text-align: center;
+  border-bottom: 2px dashed rgba(255,213,79,0.4);
+  transition: all 0.15s;
+}
+
+.title-display:active {
+  background: rgba(255,255,255,0.1);
+  border-bottom-color: #ffd54f;
+}
+
+.title-input {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  background: #fff;
+  border: 2px solid #ffd54f;
+  border-radius: 4px;
+  padding: 2px 10px;
+  width: 130px;
+  text-align: center;
+  font-family: var(--font-sans);
+  outline: none;
+  display: none;
+}
+
+.title-input.visible { display: inline-block; }
+.title-display.hidden { display: none; }
+
+/* Install Button (top-right) */
+.btn-install {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: 22px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: var(--touch-target);
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-install:hover,
+.btn-install:active {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.6);
+}
+
+.btn-install .install-icon {
+  font-size: 1.15rem;
+}
+
+.btn-install .install-label {
+  letter-spacing: 0.3px;
+}
+
+@media (max-width: 600px) {
+  .btn-install .install-label { display: none; }
+  .btn-install { padding: 8px 12px; border-radius: 50%; }
+}
+
+/* ============================================================
+   iOS Install Guide Modal
+   ============================================================ */
+.ios-guide-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.ios-guide-card {
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  padding: 24px 20px 32px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.2);
+  animation: slideUp 0.3s ease;
+  text-align: center;
+}
+
+.ios-guide-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+}
+
+.ios-guide-card .guide-subtitle {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 20px;
+}
+
+.ios-guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ios-guide-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 10px 14px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.ios-guide-step .step-num {
+  width: 28px;
+  height: 28px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.ios-guide-step .step-content {
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.ios-guide-step .step-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.ios-guide-close {
+  width: 100%;
+  padding: 14px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: var(--touch-target);
+  font-family: var(--font-sans);
+}
+
+.ios-guide-close:active { background: var(--color-primary-dark); }
+
+/* ============================================================
+   Page Tabs
+   ============================================================ */
+.page-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: #f1f3f4;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.page-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  min-height: var(--touch-target);
+  color: var(--color-text-secondary);
+}
+
+.page-tab.active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.page-tab:active {
+  transform: scale(0.96);
+}
+
+.page-tab .tab-close {
+  font-size: 0.75rem;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.5;
+  transition: all 0.15s;
+}
+
+.page-tab .tab-close:active {
+  opacity: 1;
+  background: rgba(0,0,0,0.12);
+}
+
+.page-tab.active .tab-close:active {
+  background: rgba(255,255,255,0.25);
+}
+
+.page-tab .tab-name {
+  cursor: pointer;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.add-page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  min-width: var(--touch-target);
+  background: #fff;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  font-size: 1.3rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.add-page-btn:active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+/* ============================================================
+   Page Sub-Header (Roll + Date per page)
+   ============================================================ */
+.page-sub-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 20px;
+  background: #fafafa;
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.page-sub-header .field-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-sub-header label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.page-sub-header input {
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--color-text);
+  outline: none;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+  min-height: var(--touch-target);
+}
+
+.page-sub-header input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+}
+
+#pageRollInput {
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+  width: 100px;
+}
+
+#pageDateInput {
+  width: 140px;
+}
+
+#pageDateInput::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+/* ============================================================
+   Table Wrapper
+   ============================================================ */
+.table-wrapper {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+#dataTable {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.88rem;
+}
+
+#dataTable thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+#dataTable thead th {
+  background: #37474f;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 10px 6px;
+  text-align: center;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,0.12);
+}
+
+#dataTable thead th:last-child { border-right: none; }
+
+.col-del    { width: 38px; }
+.col-scene   { width: 64px; }
+.col-shot    { width: 64px; }
+.col-take    { width: 64px; }
+.col-camera  { width: 52px; }
+.col-lens    { width: 82px; }
+.col-content { width: auto; }
+.col-vfile   { width: 108px; }
+.col-afile   { width: 108px; }
+.col-status  { width: 72px; }
+.col-notes   { width: 124px; }
+
+/* ============================================================
+   Table Body
+   ============================================================ */
+#dataTable tbody tr { transition: background 0.1s; }
+#dataTable tbody tr:nth-child(even) { background: var(--color-table-stripe); }
+#dataTable tbody tr:nth-child(odd)  { background: #fff; }
+
+#dataTable tbody td {
+  padding: 0;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+#dataTable tbody td:last-child { border-right: none; }
+
+/* Cell Inputs & Selects */
+.cell-input,
+.cell-select {
+  width: 100%;
+  height: 100%;
+  min-height: var(--touch-target);
+  padding: 6px 8px;
+  border: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  color: var(--color-text);
+  outline: none;
+  transition: all 0.12s;
+  text-align: center;
+}
+
+.cell-input:focus,
+.cell-select:focus {
+  background: var(--color-focus-bg);
+  border-color: var(--color-primary);
+  z-index: 2;
+  position: relative;
+  box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+}
+
+.cell-input.mono      { font-family: var(--font-mono); letter-spacing: 0.5px; }
+.cell-input.text-left { text-align: left; }
+
+.cell-select {
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  padding-right: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%235f6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+}
+
+.cell-input.invalid {
+  background: var(--color-invalid) !important;
+  border-color: var(--color-danger);
+}
+
+/* Delete Row Button */
+.delete-row-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: var(--touch-target);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #9aa0a6;
+  font-size: 1.1rem;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.delete-row-btn:active {
+  color: var(--color-danger);
+  background: rgba(217,48,37,0.08);
+}
+
+/* ============================================================
+   Reminder Bar
+   ============================================================ */
+.reminder-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: var(--color-warning-bg);
+  border-top: 1px solid var(--color-warning-border);
+  border-bottom: 1px solid var(--color-warning-border);
+  font-size: 0.82rem;
+  color: #5d4e00;
+  line-height: 1.4;
+}
+
+.reminder-bar .reminder-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Toolbar (bottom)
+   ============================================================ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #fafafa;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: var(--touch-target);
+  font-family: var(--font-sans);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.btn:active { transform: scale(0.96); }
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+  font-size: 0.95rem;
+  padding: 12px 28px;
+}
+
+.btn-primary:active {
+  background: var(--color-primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:disabled {
+  background: #9aa0a6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.export-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.file-ops-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn-file {
+  background: #fff;
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  font-weight: 500;
+}
+
+.btn-file:active { border-color: var(--color-primary); color: var(--color-primary); }
+
+.btn-file.save  { border-color: #1a73e8; color: #1a73e8; }
+.btn-file.save:active  { background: #e8f0fe; }
+.btn-file.load  { border-color: #e37400; color: #e37400; }
+.btn-file.load:active  { background: #fef7e0; }
+.btn-file.new   { border-color: #5f6368; color: #5f6368; }
+.btn-file.new:active   { background: #f1f3f4; }
+
+.btn-export {
+  background: #fff;
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  font-weight: 500;
+}
+
+.btn-export:active { border-color: var(--color-primary); color: var(--color-primary); }
+
+.btn-export.xml  { border-color: #f9ab00; color: #e37400; }
+.btn-export.xml:active  { background: #fef7e0; }
+.btn-export.html { border-color: #1e8e3e; color: #1e8e3e; }
+.btn-export.html:active { background: #e6f4ea; }
+
+/* ============================================================
+   Modal / Dialog
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-dialog {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  padding: 24px;
+  max-width: 420px;
+  width: 90vw;
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modal-dialog h3 {
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.modal-dialog .form-row {
+  margin-bottom: 16px;
+}
+
+.modal-dialog label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--color-text-secondary);
+}
+
+.modal-dialog select,
+.modal-dialog input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  outline: none;
+  min-height: var(--touch-target);
+}
+
+.modal-dialog select:focus,
+.modal-dialog input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.modal-buttons .btn-cancel {
+  background: #f1f3f4;
+  color: var(--color-text);
+}
+
+.modal-buttons .btn-confirm {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #323232;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 9999;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast.success { background: #1e8e3e; }
+.toast.error   { background: #d93025; }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 1024px) {
+  body { padding: 0; }
+  #app { border-radius: 0; min-height: 100vh; }
+  .app-header { padding: 10px 14px; }
+  .toolbar { padding: 10px 14px; }
+}
+
+@media (max-width: 768px) {
+  .toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .file-ops-group { justify-content: center; }
+  .export-group { justify-content: center; }
+  .btn-primary { width: 100%; }
+  .page-sub-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ============================================================
+       Global Header (Project Title only)
+       ============================================================ -->
+  <header class="app-header">
+    <div class="header-title-group">
+      <span class="book-symbol">《</span>
+      <span id="titleDisplay" class="title-display" title="点击编辑项目名称">未命名</span>
+      <input id="titleInput" class="title-input" type="text" maxlength="30" placeholder="项目名">
+      <span class="book-symbol">》场记单</span>
+    </div>
+    <!-- PWA Install Button (hidden when already installed) -->
+    <button id="pwaInstallBtn" class="btn-install" title="安装到主屏幕" style="display:none;">
+      <span class="install-icon">📲</span>
+      <span class="install-label">安装应用</span>
+    </button>
+  </header>
+
+  <!-- ============================================================
+       Page Tabs
+       ============================================================ -->
+  <div id="pageTabsBar" class="page-tabs-bar">
+    <!-- Dynamically rendered -->
+  </div>
+
+  <!-- ============================================================
+       Page Sub-Header (per-page Roll + Date)
+       ============================================================ -->
+  <div id="pageSubHeader" class="page-sub-header">
+    <div class="field-group">
+      <label for="pageRollInput">卡号 Roll</label>
+      <input id="pageRollInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="001" maxlength="20" autocomplete="off">
+    </div>
+    <div class="field-group">
+      <label for="pageDateInput">日期</label>
+      <input id="pageDateInput" type="date">
+    </div>
+    <span style="font-size:0.8rem;color:#9aa0a6;margin-left:auto;">双击页标签可重命名本页场记单（例如第一天日场/夜场）</span>
+  </div>
+
+  <!-- ============================================================
+       Data Table
+       ============================================================ -->
+  <div class="table-wrapper">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th class="col-del"></th>
+          <th class="col-scene">场次<br>Scene</th>
+          <th class="col-shot">镜次<br>Shot</th>
+          <th class="col-take">条次<br>Take</th>
+          <th class="col-camera">机位<br>Cam</th>
+          <th class="col-lens">镜头<br>Lens</th>
+          <th class="col-content">内容<br>Content</th>
+          <th class="col-vfile">视频文件号<br>Video File</th>
+          <th class="col-afile">音频文件号<br>Audio File</th>
+          <th class="col-status">OK/NG</th>
+          <th class="col-notes">备注<br>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- Dynamically rendered -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============================================================
+       Reminder Bar
+       ============================================================ -->
+  <div class="reminder-bar">
+    <span class="reminder-icon">⚠️</span>
+    <span><strong>重要提示：</strong>每次拷卡后请<strong>新建一页</strong>并<strong>增加卡号</strong>，确保拷卡时包含所有机位和录音的卡，避免 DIT 更新文件名时出现匹配错误。 如果每天使用新建的场记单文件，推荐卡号与前一天保持连贯性。</span>
+  </div>
+
+  <!-- ============================================================
+       Toolbar
+       ============================================================ -->
+  <div class="toolbar">
+    <button id="addRowBtn" class="btn btn-primary">
+      <span style="font-size:1.2rem;">＋</span> 增加一行
+    </button>
+    <div class="file-ops-group">
+      <button id="saveFileBtn" class="btn btn-file save" title="保存全部数据为 .SSCL 文件">
+        💾 保存
+      </button>
+      <button id="loadFileBtn" class="btn btn-file load" title="从 .SSCL 文件载入数据">
+        📂 载入
+      </button>
+      <button id="newFileBtn" class="btn btn-file new" title="新建空白场记单">
+        🆕 新建
+      </button>
+    </div>
+    <div class="export-group">
+      <button id="exportXmlBtn" class="btn btn-export xml" title="选择卡号导出 XML 供 DIT 使用">
+        📄 导出 DIT XML
+      </button>
+      <button id="exportHtmlBtn" class="btn btn-export html" title="导出为独立 HTML 文件">
+        🌐 导出 HTML
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Modal container (dynamically created) -->
+
+<script>
+(function() {
+  'use strict';
+
+  // ============================================================
+  // Constants
+  // ============================================================
+  const STORAGE_KEY = 'clapperboard_data_v3';
+  const STATUS_OPTIONS = ['OK', 'Keep', 'NG'];
+
+  // ============================================================
+  // Data Model
+  // ============================================================
+  let appData = {
+    projectTitle: '未命名',
+    pages: [],
+    currentPageIndex: 0,
+    exportedRolls: []   // Track which roll numbers have been exported as DIT XML
+  };
+
+  // ============================================================
+  // DOM References
+  // ============================================================
+  const $  = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
+
+  const dom = {
+    titleDisplay: $('#titleDisplay'),
+    titleInput: $('#titleInput'),
+    pageTabsBar: $('#pageTabsBar'),
+    pageRollInput: $('#pageRollInput'),
+    pageDateInput: $('#pageDateInput'),
+    tableBody: $('#tableBody'),
+    addRowBtn: $('#addRowBtn'),
+    saveFileBtn: $('#saveFileBtn'),
+    loadFileBtn: $('#loadFileBtn'),
+    newFileBtn: $('#newFileBtn'),
+    exportXmlBtn: $('#exportXmlBtn'),
+    exportHtmlBtn: $('#exportHtmlBtn'),
+    toast: $('#toast')
+  };
+
+  // ============================================================
+  // Utility Functions
+  // ============================================================
+  function generateId() {
+    return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  function debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function escapeXml(str) {
+    return String(str).replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  function safeFilename(str) {
+    return (str || 'Untitled').replace(/[\\/:*?"<>|]/g, '_').trim();
+  }
+
+  // ============================================================
+  // Toast Notification
+  // ============================================================
+  let toastTimer;
+  function showToast(message, type) {
+    clearTimeout(toastTimer);
+    const el = dom.toast;
+    el.textContent = message;
+    el.className = 'toast ' + (type || '') + ' show';
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+  }
+
+  // ============================================================
+  // Data Persistence (localStorage)
+  // ============================================================
+  function saveToStorage() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    } catch (e) {
+      console.warn('Failed to save to localStorage:', e);
+    }
+  }
+
+  const debouncedSave = debounce(saveToStorage, 500);
+
+  function loadFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+
+      const parsed = JSON.parse(raw);
+      appData.projectTitle = parsed.projectTitle || '未命名';
+      appData.currentPageIndex = (typeof parsed.currentPageIndex === 'number' &&
+                                  parsed.currentPageIndex >= 0) ? parsed.currentPageIndex : 0;
+      appData.exportedRolls = Array.isArray(parsed.exportedRolls) ? parsed.exportedRolls : [];
+
+      if (!Array.isArray(parsed.pages) || parsed.pages.length === 0) {
+        appData.pages = [createEmptyPage('第1页')];
+        return true;
+      }
+
+      // Migrate from v2 (roll/date at app level) to v3 (roll/date per page)
+      const hasLegacyRoll = (parsed.roll !== undefined) || (parsed.date !== undefined);
+      const legacyRoll = parsed.roll || '';
+      const legacyDate = parsed.date || '';
+
+      appData.pages = parsed.pages.map((page, idx) => {
+        if (!page.id) page.id = generateId();
+        if (!page.name) page.name = '第' + (idx + 1) + '页';
+        if (!Array.isArray(page.rows) || page.rows.length === 0) {
+          page.rows = [createEmptyRow()];
+        }
+
+        // Migrate: if page has no roll/date, inherit from legacy
+        if (page.roll === undefined) {
+          page.roll = hasLegacyRoll ? legacyRoll : '';
+        }
+        if (page.date === undefined) {
+          page.date = hasLegacyRoll ? legacyDate : '';
+        }
+
+        // Ensure every row has an id and valid status
+        page.rows.forEach(row => {
+          if (!row.id) row.id = generateId();
+          if (!row.status || !STATUS_OPTIONS.includes(row.status)) row.status = 'Keep';
+        });
+
+        return page;
+      });
+
+      // Fix currentPageIndex bounds
+      if (appData.currentPageIndex >= appData.pages.length) {
+        appData.currentPageIndex = appData.pages.length - 1;
+      }
+      if (appData.currentPageIndex < 0) appData.currentPageIndex = 0;
+
+      return true;
+    } catch (e) {
+      console.warn('Failed to load from localStorage:', e);
+    }
+    return false;
+  }
+
+  function createEmptyPage(name) {
+    return {
+      id: generateId(),
+      name: name || '第1页',
+      roll: '',
+      date: '',
+      rows: [createEmptyRow()]
+    };
+  }
+
+  function createEmptyRow() {
+    return {
+      id: generateId(),
+      scene: '',
+      shot: '',
+      take: '',
+      camera: '',
+      lens: '',
+      content: '',
+      videoFile: '',
+      audioFile: '',
+      status: 'Keep',
+      notes: ''
+    };
+  }
+
+  function afterDataChange() {
+    debouncedSave();
+  }
+
+  // ============================================================
+  // Current Page Helpers
+  // ============================================================
+  function getCurrentPage() {
+    return appData.pages[appData.currentPageIndex];
+  }
+
+  function getCurrentRows() {
+    const page = getCurrentPage();
+    return page ? page.rows : [];
+  }
+
+  function findRowById(rowId) {
+    return getCurrentRows().find(r => r.id === rowId);
+  }
+
+  function findRowIndexById(rowId) {
+    return getCurrentRows().findIndex(r => r.id === rowId);
+  }
+
+  // ============================================================
+  // Field Sanitizers / Validators
+  // ============================================================
+  function sanitizeSceneShotTake(value) {
+    if (!value) return '';
+    let cleaned = value.replace(/[^a-zA-Z0-9]/g, '');
+    const digits = cleaned.replace(/[^0-9]/g, '');
+    const letters = cleaned.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    const suffix = letters.length > 0 ? letters.charAt(0) : '';
+    return digits + suffix;
+  }
+
+  function sanitizeCamera(value) {
+    if (!value) return '';
+    const letter = value.replace(/[^a-zA-Z]/g, '').charAt(0);
+    return letter ? letter.toUpperCase() : '';
+  }
+
+  function sanitizeFileNumber(value) {
+    return value.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+  }
+
+  // ============================================================
+  // Smart Row Inheritance
+  // ============================================================
+  function incrementTake(take) {
+    if (!take) return '';
+    const match = take.match(/^(\d+)([A-Z]?)$/);
+    if (match) {
+      return String(parseInt(match[1], 10) + 1);
+    }
+    return take;
+  }
+
+  function incrementFileNumber(str) {
+    if (!str) return '';
+    const match = str.match(/^(.*?)(\d+)$/);
+    if (match) {
+      const num = parseInt(match[2], 10) + 1;
+      return match[1] + String(num).padStart(match[2].length, '0');
+    }
+    return str;
+  }
+
+  function computeNextRow(prevRow) {
+    const next = createEmptyRow();
+    if (prevRow) {
+      next.scene = prevRow.scene;
+      next.shot = prevRow.shot;
+      next.take = incrementTake(prevRow.take);
+      next.camera = prevRow.camera;
+      next.videoFile = incrementFileNumber(prevRow.videoFile);
+      next.audioFile = incrementFileNumber(prevRow.audioFile);
+    }
+    return next;
+  }
+
+  // ============================================================
+  // Pad for XML export
+  // ============================================================
+  function padSceneShotTake(value) {
+    if (!value) return '000';
+    const match = value.match(/^(\d+)([A-Z]?)$/);
+    if (match) {
+      return match[1].padStart(3, '0') + match[2];
+    }
+    return value;
+  }
+
+  // ============================================================
+  // Rendering: Page Tabs
+  // ============================================================
+  function renderPageTabs() {
+    const bar = dom.pageTabsBar;
+    bar.innerHTML = '';
+
+    appData.pages.forEach((page, index) => {
+      const tab = document.createElement('div');
+      tab.className = 'page-tab' + (index === appData.currentPageIndex ? ' active' : '');
+      tab.dataset.index = index;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'tab-name';
+      nameSpan.textContent = page.name;
+      nameSpan.title = '双击重命名 | 卡号: ' + (page.roll || '未设置');
+      tab.appendChild(nameSpan);
+
+      // Show roll badge on the tab
+      if (page.roll) {
+        const badge = document.createElement('span');
+        badge.style.cssText = 'font-size:0.7rem;opacity:0.7;font-weight:400;';
+        badge.textContent = '#' + page.roll;
+        tab.appendChild(badge);
+      }
+
+      if (appData.pages.length > 1) {
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'tab-close';
+        closeBtn.innerHTML = '&#10005;';
+        closeBtn.title = '删除此页';
+        closeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deletePage(index);
+        });
+        tab.appendChild(closeBtn);
+      }
+
+      tab.addEventListener('click', () => switchPage(index));
+      tab.addEventListener('dblclick', () => renamePagePrompt(index));
+      bar.appendChild(tab);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-page-btn';
+    addBtn.innerHTML = '&#43;';
+    addBtn.title = '新增页面';
+    addBtn.addEventListener('click', addPage);
+    bar.appendChild(addBtn);
+  }
+
+  // ============================================================
+  // Rendering: Table Body
+  // ============================================================
+  function renderTableBody() {
+    const tbody = dom.tableBody;
+    const rows = getCurrentRows();
+    tbody.innerHTML = '';
+
+    rows.forEach((row) => {
+      const tr = document.createElement('tr');
+      tr.dataset.rowId = row.id;
+
+      // Delete button cell
+      const tdDel = document.createElement('td');
+      tdDel.className = 'col-del';
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-row-btn';
+      delBtn.innerHTML = (rows.length === 1) ? '&#8634;' : '&#10005;';
+      delBtn.title = (rows.length === 1) ? '清空此行' : '删除此行';
+      delBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        deleteRow(row.id);
+      });
+      tdDel.appendChild(delBtn);
+      tr.appendChild(tdDel);
+
+      const cellDefs = [
+        { field: 'scene',     cssClass: 'col-scene mono',       sanitize: sanitizeSceneShotTake, maxlen: 6 },
+        { field: 'shot',      cssClass: 'col-shot mono',        sanitize: sanitizeSceneShotTake, maxlen: 6 },
+        { field: 'take',      cssClass: 'col-take mono',        sanitize: sanitizeSceneShotTake, maxlen: 6 },
+        { field: 'camera',    cssClass: 'col-camera mono',      sanitize: sanitizeCamera,       maxlen: 1 },
+        { field: 'lens',      cssClass: 'col-lens text-left',   sanitize: null,                 maxlen: 30 },
+        { field: 'content',   cssClass: 'col-content text-left',sanitize: null,                 maxlen: 200 },
+        { field: 'videoFile', cssClass: 'col-vfile mono',       sanitize: sanitizeFileNumber,   maxlen: 20 },
+        { field: 'audioFile', cssClass: 'col-afile mono',       sanitize: sanitizeFileNumber,   maxlen: 20 },
+        { field: 'status',    cssClass: 'col-status',           sanitize: null,                 maxlen: null, isSelect: true, options: STATUS_OPTIONS },
+        { field: 'notes',     cssClass: 'col-notes text-left',  sanitize: null,                 maxlen: 200 }
+      ];
+
+      cellDefs.forEach(def => {
+        const td = document.createElement('td');
+        td.className = def.cssClass.replace(/\s+/g, ' ');
+
+        if (def.isSelect) {
+          const sel = document.createElement('select');
+          sel.className = 'cell-select';
+          sel.dataset.field = def.field;
+          sel.dataset.rowId = row.id;
+          def.options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            if (row[def.field] === opt) option.selected = true;
+            sel.appendChild(option);
+          });
+          sel.addEventListener('change', onCellChange);
+          td.appendChild(sel);
+        } else {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'cell-input' +
+            (def.cssClass.includes('mono') ? ' mono' : '') +
+            (def.cssClass.includes('text-left') ? ' text-left' : '');
+          input.dataset.field = def.field;
+          input.dataset.rowId = row.id;
+          input.value = row[def.field] || '';
+          if (def.maxlen) input.maxLength = def.maxlen;
+          if (def.sanitize) input.dataset.sanitize = 'true';
+          if (def.field === 'camera') {
+            input.setAttribute('inputmode', 'text');
+            input.setAttribute('autocapitalize', 'characters');
+          }
+          if (def.field === 'scene') input.placeholder = '1A';
+          else if (def.field === 'shot') input.placeholder = '1';
+          else if (def.field === 'take') input.placeholder = '1';
+          else if (def.field === 'camera') input.placeholder = 'A';
+
+          input.addEventListener('input', onCellInput);
+          input.addEventListener('blur', onCellBlur);
+          input.addEventListener('change', onCellChange);
+          td.appendChild(input);
+        }
+
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ============================================================
+  // Cell Event Handlers
+  // ============================================================
+  function onCellInput(e) {
+    const input = e.target;
+    const field = input.dataset.field;
+    const rowId = input.dataset.rowId;
+    const shouldSanitize = input.dataset.sanitize === 'true';
+
+    if (shouldSanitize && field) {
+      let sanitized;
+      if (field === 'camera') {
+        sanitized = sanitizeCamera(input.value);
+      } else if (field === 'scene' || field === 'shot' || field === 'take') {
+        sanitized = sanitizeSceneShotTake(input.value);
+      } else if (field === 'videoFile' || field === 'audioFile') {
+        sanitized = sanitizeFileNumber(input.value);
+      } else {
+        sanitized = input.value;
+      }
+
+      if (sanitized !== input.value) {
+        const cursorPos = input.selectionStart;
+        input.value = sanitized;
+        const newPos = Math.min(cursorPos, sanitized.length);
+        input.setSelectionRange(newPos, newPos);
+      }
+
+      validateFieldVisual(input, field, sanitized);
+    }
+
+    updateCellValue(rowId, field, input.value);
+  }
+
+  function onCellBlur(e) {
+    const input = e.target;
+    const field = input.dataset.field;
+    const rowId = input.dataset.rowId;
+    if (field === 'camera' || field === 'scene' || field === 'shot' || field === 'take' ||
+        field === 'videoFile' || field === 'audioFile') {
+      let sanitized;
+      if (field === 'camera') {
+        sanitized = sanitizeCamera(input.value);
+      } else if (field === 'scene' || field === 'shot' || field === 'take') {
+        sanitized = sanitizeSceneShotTake(input.value);
+      } else if (field === 'videoFile' || field === 'audioFile') {
+        sanitized = sanitizeFileNumber(input.value);
+      } else {
+        sanitized = input.value;
+      }
+      if (sanitized !== input.value) {
+        input.value = sanitized;
+        updateCellValue(rowId, field, sanitized);
+      }
+      validateFieldVisual(input, field, sanitized);
+    }
+  }
+
+  function onCellChange(e) {
+    const el = e.target;
+    updateCellValue(el.dataset.rowId, el.dataset.field, el.value);
+  }
+
+  function validateFieldVisual(input, field, value) {
+    if (field === 'camera') {
+      input.classList.toggle('invalid', !!(value && !/^[A-Z]$/.test(value)));
+    }
+    if (field === 'scene' || field === 'shot' || field === 'take') {
+      input.classList.toggle('invalid', !!(value && !/^\d+[A-Z]?$/.test(value)));
+    }
+  }
+
+  function updateCellValue(rowId, field, value) {
+    const row = findRowById(rowId);
+    if (row && row[field] !== value) {
+      row[field] = value;
+      afterDataChange();
+    }
+  }
+
+  // ============================================================
+  // Row Operations
+  // ============================================================
+  function addRow() {
+    const page = getCurrentPage();
+    if (!page) return;
+    const rows = page.rows;
+
+    // Enforce 30-row limit per page
+    if (rows.length >= MAX_ROWS_PER_PAGE) {
+      showToast('当前页面已达 ' + MAX_ROWS_PER_PAGE + ' 行上限，请新增页面', 'error');
+      return;
+    }
+
+    const prevRow = rows.length > 0 ? rows[rows.length - 1] : null;
+    const newRow = computeNextRow(prevRow);
+    rows.push(newRow);
+    renderTableBody();
+    afterDataChange();
+
+    setTimeout(() => {
+      const lastRow = dom.tableBody.lastElementChild;
+      if (lastRow) {
+        lastRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const firstInput = lastRow.querySelector('.cell-input');
+        if (firstInput) firstInput.focus();
+      }
+    }, 100);
+  }
+
+  function deleteRow(rowId) {
+    const rows = getCurrentRows();
+    if (rows.length <= 1) {
+      // Only one row: clear fields instead of deleting — no confirmation needed
+      const row = rows[0];
+      Object.keys(row).forEach(key => {
+        if (key !== 'id') row[key] = (key === 'status') ? 'OK' : '';
+      });
+      renderTableBody();
+      afterDataChange();
+      showToast('已清空此行数据');
+      return;
+    }
+
+    // Show confirmation modal before deleting
+    const rowIndex = findRowIndexById(rowId);
+    const rowLabel = rowIndex !== -1 ? '第 ' + (rowIndex + 1) + ' 行' : '此行';
+
+    const bodyHtml = '<p style="text-align:center;font-size:0.95rem;margin:8px 0;">确定要删除 <strong>' + rowLabel + '</strong> 吗？</p>' +
+      '<p style="text-align:center;font-size:0.8rem;color:#5f6368;">此操作不可撤销</p>';
+
+    showModal('确认删除', bodyHtml, (dialog) => {
+      const index = findRowIndexById(rowId);
+      if (index !== -1) {
+        rows.splice(index, 1);
+        renderTableBody();
+        afterDataChange();
+        showToast('已删除 ' + rowLabel);
+      }
+    }, '删除');
+  }
+
+  // ============================================================
+  // Page Operations
+  // ============================================================
+  function addPage() {
+    const pageNum = appData.pages.length + 1;
+    const newPage = createEmptyPage('第' + pageNum + '页');
+
+    // Inherit roll from previous page
+    if (appData.pages.length > 0) {
+      const prevPage = appData.pages[appData.pages.length - 1];
+      newPage.roll = prevPage.roll || '';
+    }
+
+    appData.pages.push(newPage);
+    appData.currentPageIndex = appData.pages.length - 1;
+    refreshPageView();
+    afterDataChange();
+    showToast('已新增 ' + newPage.name + ' — 卡号已继承上一页');
+  }
+
+  function switchPage(index) {
+    if (index === appData.currentPageIndex) return;
+    if (index < 0 || index >= appData.pages.length) return;
+    appData.currentPageIndex = index;
+    refreshPageView();
+    afterDataChange();
+  }
+
+  function deletePage(index) {
+    if (appData.pages.length <= 1) {
+      showToast('至少保留一个页面', 'error');
+      return;
+    }
+    if (index < 0 || index >= appData.pages.length) return;
+    const pageName = appData.pages[index].name;
+    if (!confirm('确定要删除「' + pageName + '」吗？此操作不可撤销。')) return;
+
+    appData.pages.splice(index, 1);
+    if (appData.currentPageIndex >= appData.pages.length) {
+      appData.currentPageIndex = appData.pages.length - 1;
+    }
+    if (appData.currentPageIndex < 0) appData.currentPageIndex = 0;
+    refreshPageView();
+    afterDataChange();
+    showToast('已删除 ' + pageName);
+  }
+
+  function renamePagePrompt(index) {
+    const page = appData.pages[index];
+    if (!page) return;
+    const newName = prompt('重命名页面：', page.name);
+    if (newName && newName.trim()) {
+      page.name = newName.trim();
+      renderPageTabs();
+      afterDataChange();
+    }
+  }
+
+  /**
+   * Refresh page sub-header + tabs + table (call on page switch / page add / page delete)
+   */
+  function refreshPageView() {
+    renderPageTabs();
+    syncPageSubHeader();
+    renderTableBody();
+    updateAddRowButton();
+  }
+
+  // ============================================================
+  // Add Row Button State (30-row limit)
+  // ============================================================
+  const MAX_ROWS_PER_PAGE = 30;
+
+  function updateAddRowButton() {
+    const rows = getCurrentRows();
+    const btn = dom.addRowBtn;
+    if (rows.length >= MAX_ROWS_PER_PAGE) {
+      btn.textContent = '⚠ 已达上限（30行），请新增页面';
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+      btn.style.cursor = 'not-allowed';
+    } else {
+      btn.innerHTML = '<span style="font-size:1.2rem;">＋</span> 增加一行';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+    }
+  }
+
+  // ============================================================
+  // Page Sub-Header (Roll + Date per page)
+  // ============================================================
+  function syncPageSubHeader() {
+    const page = getCurrentPage();
+    if (!page) return;
+    dom.pageRollInput.value = page.roll || '';
+    dom.pageDateInput.value = page.date || '';
+
+    // Lock roll input if this page is NOT the last page
+    const isLastPage = (appData.currentPageIndex === appData.pages.length - 1);
+    dom.pageRollInput.disabled = !isLastPage;
+    dom.pageRollInput.style.background = isLastPage ? '#fff' : '#f1f3f4';
+    dom.pageRollInput.style.color = isLastPage ? '' : '#5f6368';
+    dom.pageRollInput.title = isLastPage ? '卡号（仅数字）' : '卡号已锁定（非最后一页）';
+  }
+
+  // Store roll value before editing for validation
+  let _rollBeforeEdit = '';
+
+  function setupPageSubHeader() {
+    dom.pageRollInput.addEventListener('focus', () => {
+      const page = getCurrentPage();
+      if (page) _rollBeforeEdit = page.roll;
+    });
+
+    dom.pageRollInput.addEventListener('input', () => {
+      const page = getCurrentPage();
+      if (!page) return;
+      // Filter to digits only for roll
+      const cleaned = dom.pageRollInput.value.replace(/[^0-9]/g, '');
+      if (cleaned !== dom.pageRollInput.value) {
+        dom.pageRollInput.value = cleaned;
+      }
+      page.roll = cleaned;
+      afterDataChange();
+      // Update tab badge
+      renderPageTabs();
+    });
+
+    dom.pageRollInput.addEventListener('blur', () => {
+      const page = getCurrentPage();
+      if (!page) return;
+      const currentIndex = appData.currentPageIndex;
+      if (currentIndex > 0 && page.roll) {
+        const prevPage = appData.pages[currentIndex - 1];
+        if (prevPage.roll) {
+          const prevRollNum = parseInt(prevPage.roll, 10);
+          const currentRollNum = parseInt(page.roll, 10);
+          if (!isNaN(prevRollNum) && !isNaN(currentRollNum) && currentRollNum < prevRollNum) {
+            showToast('卡号不能低于上一页（卡号 ' + prevPage.roll + '），已恢复', 'error');
+            // Revert to the value before editing
+            page.roll = _rollBeforeEdit;
+            dom.pageRollInput.value = page.roll;
+            afterDataChange();
+            renderPageTabs();
+          }
+        }
+      }
+    });
+
+    dom.pageDateInput.addEventListener('change', () => {
+      const page = getCurrentPage();
+      if (!page) return;
+      page.date = dom.pageDateInput.value;
+      afterDataChange();
+    });
+  }
+
+  // ============================================================
+  // Title Editing
+  // ============================================================
+  function setupTitleEditing() {
+    const display = dom.titleDisplay;
+    const input = dom.titleInput;
+
+    display.addEventListener('click', () => {
+      display.classList.add('hidden');
+      input.classList.add('visible');
+      input.value = appData.projectTitle;
+      input.focus();
+      input.select();
+    });
+
+    function commitTitle() {
+      const newTitle = input.value.trim() || '未命名';
+      appData.projectTitle = newTitle;
+      display.textContent = newTitle;
+      input.value = newTitle;
+      input.classList.remove('visible');
+      display.classList.remove('hidden');
+      afterDataChange();
+    }
+
+    input.addEventListener('blur', commitTitle);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { input.value = appData.projectTitle; input.blur(); }
+    });
+  }
+
+  // ============================================================
+  // Gather all rows across all pages (for export)
+  // ============================================================
+  function gatherAllData() {
+    const result = [];
+    appData.pages.forEach(page => {
+      page.rows.forEach(row => {
+        result.push({
+          ...row,
+          _pageName: page.name,
+          _pageRoll: page.roll,
+          _pageDate: page.date,
+          _pageId: page.id
+        });
+      });
+    });
+    return result;
+  }
+
+  // ============================================================
+  // Get unique non-empty roll numbers across all pages
+  // ============================================================
+  function getUniqueRolls() {
+    const rolls = new Set();
+    appData.pages.forEach(page => {
+      if (page.roll && page.roll.trim()) {
+        rolls.add(page.roll.trim());
+      }
+    });
+    return Array.from(rolls).sort();
+  }
+
+  // ============================================================
+  // Modal Helper
+  // ============================================================
+  function showModal(title, bodyHtml, onConfirm, confirmLabel) {
+    // Remove any existing modal
+    const existing = $('.modal-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'modal-dialog';
+    dialog.innerHTML = '<h3>' + escapeHtml(title) + '</h3>' + bodyHtml;
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'modal-buttons';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-cancel';
+    cancelBtn.textContent = '取消';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn btn-confirm';
+    confirmBtn.textContent = confirmLabel || '确认';
+    confirmBtn.addEventListener('click', () => {
+      const result = onConfirm(dialog);
+      if (result !== false) overlay.remove();
+    });
+
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(confirmBtn);
+    dialog.appendChild(btnRow);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    return dialog;
+  }
+
+  // ============================================================
+  // Export: XML (with roll selection dialog)
+  // ============================================================
+  function exportXML() {
+    const uniqueRolls = getUniqueRolls();
+
+    if (uniqueRolls.length === 0) {
+      showToast('请先在页面中填写卡号（Roll）', 'error');
+      return;
+    }
+
+    // Sort rolls by numeric value descending (latest first)
+    const sortedRolls = uniqueRolls.sort((a, b) => {
+      const na = parseInt(a, 10);
+      const nb = parseInt(b, 10);
+      if (!isNaN(na) && !isNaN(nb)) return nb - na;
+      if (!isNaN(na)) return -1;
+      if (!isNaN(nb)) return 1;
+      return b.localeCompare(a);
+    });
+    const latestRoll = sortedRolls[0];
+
+    // Helper: check if a roll was already exported
+    const isExported = (roll) => appData.exportedRolls.includes(roll);
+
+    if (uniqueRolls.length === 1) {
+      // Only one roll — check if already exported
+      if (isExported(latestRoll)) {
+        const bodyHtml = '<p style="text-align:center;font-size:0.95rem;margin:8px 0;">卡号 <strong>' + escapeHtml(latestRoll) + '</strong> 的 DIT 数据<strong>已导出过</strong></p>' +
+          '<p style="text-align:center;font-size:0.8rem;color:#5f6368;">确定要重复导出吗？</p>';
+        showModal('⚠️ 重复导出确认', bodyHtml, () => {
+          doExportXML(latestRoll);
+        }, '确认导出');
+      } else {
+        doExportXML(latestRoll);
+      }
+    } else {
+      // Multiple rolls — show selection dialog, pre-select latest
+      let optionsHtml = '<div class="form-row"><label for="modalRollSelect">选择要导出的卡号：</label>';
+      optionsHtml += '<select id="modalRollSelect">';
+      sortedRolls.forEach(roll => {
+        const exported = isExported(roll) ? ' 【已导出】' : '';
+        const selected = (roll === latestRoll) ? ' selected' : '';
+        optionsHtml += '<option value="' + escapeHtml(roll) + '"' + selected + '>卡号 ' + escapeHtml(roll) + exported + '</option>';
+      });
+      optionsHtml += '</select></div>';
+      optionsHtml += '<p id="modalExportNote" style="font-size:0.8rem;color:#5f6368;margin-top:8px;">将仅导出所选卡号对应的页面数据</p>';
+
+      // Update note when selection changes
+      const onSelectChange = 'document.getElementById("modalRollSelect").addEventListener("change",function(){var n=document.getElementById("modalExportNote");if(' +
+        JSON.stringify(appData.exportedRolls) + '.includes(this.value)){n.textContent="⚠️ 该卡号已导出过，将重复导出";n.style.color="#e37400";}else{n.textContent="将仅导出所选卡号对应的页面数据";n.style.color="#5f6368";}});';
+
+      showModal('选择导出卡号', optionsHtml, (dialog) => {
+        const sel = dialog.querySelector('#modalRollSelect');
+        if (sel && sel.value) {
+          doExportXML(sel.value);
+        }
+      }, '导出 XML');
+
+      // Attach change listener to the select
+      setTimeout(() => {
+        const sel = document.querySelector('#modalRollSelect');
+        const note = document.querySelector('#modalExportNote');
+        if (sel && note) {
+          sel.addEventListener('change', () => {
+            if (appData.exportedRolls.includes(sel.value)) {
+              note.textContent = '⚠️ 该卡号已导出过，将重复导出';
+              note.style.color = '#e37400';
+            } else {
+              note.textContent = '将仅导出所选卡号对应的页面数据';
+              note.style.color = '#5f6368';
+            }
+          });
+          // Initial check for pre-selected roll
+          if (appData.exportedRolls.includes(sel.value)) {
+            note.textContent = '⚠️ 该卡号已导出过，将重复导出';
+            note.style.color = '#e37400';
+          }
+        }
+      }, 50);
+    }
+  }
+
+  function doExportXML(selectedRoll) {
+    // Gather rows from pages matching the selected roll
+    const matchingRows = [];
+    appData.pages.forEach(page => {
+      if (page.roll && page.roll.trim() === selectedRoll) {
+        page.rows.forEach(row => {
+          matchingRows.push(row);
+        });
+      }
+    });
+
+    const nonEmptyRows = matchingRows.filter(row => {
+      return row.scene || row.shot || row.take || row.camera ||
+             row.videoFile || row.audioFile || row.lens || row.content || row.notes;
+    });
+
+    if (nonEmptyRows.length === 0) {
+      showToast('卡号 ' + selectedRoll + ' 没有可导出的数据', 'error');
+      return;
+    }
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<clapperboard>\n';
+    xml += '  <header>\n';
+    xml += '    <project>' + escapeXml(appData.projectTitle) + '</project>\n';
+    xml += '    <roll>' + escapeXml(selectedRoll) + '</roll>\n';
+    xml += '    <date>' + escapeXml(
+      (appData.pages.find(p => p.roll === selectedRoll) || {}).date || ''
+    ) + '</date>\n';
+    xml += '  </header>\n';
+    xml += '  <clips>\n';
+
+    nonEmptyRows.forEach((row, index) => {
+      xml += '    <clip id="' + (index + 1) + '">\n';
+      xml += '      <scene>' + escapeXml(padSceneShotTake(row.scene)) + '</scene>\n';
+      xml += '      <shot>' + escapeXml(padSceneShotTake(row.shot)) + '</shot>\n';
+      xml += '      <take>' + escapeXml(padSceneShotTake(row.take)) + '</take>\n';
+      xml += '      <camera>' + escapeXml(row.camera) + '</camera>\n';
+      xml += '      <videoFile>' + escapeXml(row.videoFile) + '</videoFile>\n';
+      xml += '      <audioFile>' + escapeXml(row.audioFile) + '</audioFile>\n';
+      xml += '    </clip>\n';
+    });
+
+    xml += '  </clips>\n';
+    xml += '</clapperboard>';
+
+    const filename = safeFilename(appData.projectTitle) + '_Card.' + safeFilename(selectedRoll) + '_SSCL.xml';
+    downloadBlob(xml, filename, 'application/xml;charset=utf-8');
+
+    // Record this roll as exported
+    if (!appData.exportedRolls.includes(selectedRoll)) {
+      appData.exportedRolls.push(selectedRoll);
+      afterDataChange();
+    }
+
+    showToast('XML 导出成功（卡号: ' + selectedRoll + '，共 ' + nonEmptyRows.length + ' 条）', 'success');
+  }
+
+  // ============================================================
+  // Export: HTML (grouped by page)
+  // ============================================================
+  function exportHTML() {
+    let html = '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n';
+    html += '<meta charset="UTF-8">\n';
+    html += '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
+    html += '<title>' + escapeHtml(appData.projectTitle) + ' 场记单</title>\n';
+    html += '<style>\n';
+    html += 'body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; padding: 20px; color: #202124; }\n';
+    html += 'h1 { text-align: center; font-size: 22px; margin-bottom: 4px; }\n';
+    html += '.global-meta { text-align: center; color: #5f6368; font-size: 13px; margin-bottom: 24px; }\n';
+    html += 'h2 { font-size: 16px; margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #37474f; }\n';
+    html += '.page-meta { font-size: 13px; color: #5f6368; margin-bottom: 8px; }\n';
+    html += 'table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }\n';
+    html += 'th, td { border: 1px solid #555; padding: 5px 6px; text-align: center; word-break: break-all; }\n';
+    html += 'th { background: #37474f; color: #fff; font-weight: 600; }\n';
+    html += 'tr:nth-child(even) { background: #f8f9fa; }\n';
+    html += 'tr:nth-child(odd)  { background: #fff; }\n';
+    html += '@media print { body { padding: 0; } }\n';
+    html += '</style>\n</head>\n<body>\n';
+
+    html += '<h1>《' + escapeHtml(appData.projectTitle) + '》场记单</h1>\n';
+    html += '<div class="global-meta">共 ' + appData.pages.length + ' 页 &nbsp;|&nbsp; 导出时间: ' + new Date().toLocaleString('zh-CN') + '</div>\n';
+
+    const headers = ['#', '场次', '镜次', '条次', '机位', '镜头', '内容', '视频文件号', '音频文件号', 'OK/NG', '备注'];
+    let globalIdx = 0;
+
+    appData.pages.forEach(page => {
+      html += '<h2>' + escapeHtml(page.name) + '</h2>\n';
+      html += '<div class="page-meta">卡号: ' + escapeHtml(page.roll || '—') + ' &nbsp;|&nbsp; 日期: ' + escapeHtml(page.date || '—') + '</div>\n';
+
+      html += '<table>\n<thead><tr>';
+      headers.forEach(h => { html += '<th>' + h + '</th>'; });
+      html += '</tr></thead>\n<tbody>\n';
+
+      page.rows.forEach(row => {
+        globalIdx++;
+        html += '<tr>';
+        html += '<td>' + globalIdx + '</td>';
+        html += '<td>' + escapeHtml(row.scene) + '</td>';
+        html += '<td>' + escapeHtml(row.shot) + '</td>';
+        html += '<td>' + escapeHtml(row.take) + '</td>';
+        html += '<td>' + escapeHtml(row.camera) + '</td>';
+        html += '<td>' + escapeHtml(row.lens) + '</td>';
+        html += '<td>' + escapeHtml(row.content) + '</td>';
+        html += '<td>' + escapeHtml(row.videoFile) + '</td>';
+        html += '<td>' + escapeHtml(row.audioFile) + '</td>';
+        html += '<td>' + escapeHtml(row.status) + '</td>';
+        html += '<td>' + escapeHtml(row.notes) + '</td>';
+        html += '</tr>\n';
+      });
+
+      html += '</tbody>\n</table>\n';
+    });
+
+    html += '</body>\n</html>';
+
+    const filename = safeFilename(appData.projectTitle) + '_场记单.html';
+    downloadBlob(html, filename, 'text/html;charset=utf-8');
+    showToast('HTML 导出成功！（共 ' + globalIdx + ' 条记录，' + appData.pages.length + ' 页）', 'success');
+  }
+
+  // ============================================================
+  // Generic File Download
+  // ============================================================
+  function downloadBlob(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ============================================================
+  // Save / Load / New File Operations
+  // ============================================================
+
+  /**
+   * Import data from a parsed JSON object.
+   * Validates structure and replaces current appData.
+   */
+  function importData(data) {
+    if (!data || !Array.isArray(data.pages)) {
+      throw new Error('文件格式不正确：缺少页面数据');
+    }
+
+    appData.projectTitle = data.projectTitle || '未命名';
+    appData.pages = data.pages.map((page, idx) => {
+      return {
+        id: page.id || generateId(),
+        name: page.name || ('第' + (idx + 1) + '页'),
+        roll: page.roll || '',
+        date: page.date || '',
+        rows: (Array.isArray(page.rows) ? page.rows : []).map(row => ({
+          id: row.id || generateId(),
+          scene: row.scene || '',
+          shot: row.shot || '',
+          take: row.take || '',
+          camera: row.camera || '',
+          lens: row.lens || '',
+          content: row.content || '',
+          videoFile: row.videoFile || '',
+          audioFile: row.audioFile || '',
+          status: row.status && STATUS_OPTIONS.includes(row.status) ? row.status : 'Keep',
+          notes: row.notes || ''
+        }))
+      };
+    });
+
+    if (appData.pages.length === 0) {
+      appData.pages = [createEmptyPage('第1页')];
+      appData.pages[0].roll = '1';
+    }
+    appData.currentPageIndex = 0;
+
+    // Persist to localStorage
+    saveToStorage();
+
+    // Refresh UI
+    dom.titleDisplay.textContent = appData.projectTitle;
+    refreshPageView();
+  }
+
+  /**
+   * Save all data to a .SSCL file.
+   * Uses File System Access API if available, falls back to download.
+   */
+  async function saveToFile() {
+    const data = JSON.stringify(appData, null, 2);
+    const suggestedName = safeFilename(appData.projectTitle || '场记单') + '.SSCL';
+
+    // Try File System Access API (Chrome/Edge 86+)
+    if (typeof window.showSaveFilePicker === 'function') {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: suggestedName,
+          types: [{
+            description: '场记单文件',
+            accept: { 'application/json': ['.sscl'] }
+          }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(data);
+        await writable.close();
+        showToast('保存成功！', 'success');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return; // User cancelled
+        // Fall through to download fallback
+        console.warn('File System Access API failed, using download fallback:', err);
+      }
+    }
+
+    // Fallback: trigger browser download
+    downloadBlob(data, suggestedName, 'application/json');
+    showToast('已触发下载（请将文件保存到网页所在目录）', 'success');
+  }
+
+  /**
+   * Load data from a .SSCL file.
+   * Uses File System Access API if available, falls back to file input.
+   */
+  async function loadFromFile() {
+    // Warn about unsaved changes
+    const confirmed = confirm(
+      '载入文件将替换当前所有数据。\n\n' +
+      '如果当前内容尚未保存，请先点击「保存」。\n\n' +
+      '确定要载入文件吗？'
+    );
+    if (!confirmed) return;
+
+    // Try File System Access API
+    if (typeof window.showOpenFilePicker === 'function') {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{
+            description: '场记单文件',
+            accept: { 'application/json': ['.sscl'] }
+          }],
+          multiple: false
+        });
+        const file = await handle.getFile();
+        const text = await file.text();
+        const data = JSON.parse(text);
+        importData(data);
+        showToast('载入成功！', 'success');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.warn('File System Access API failed, using file input fallback:', err);
+      }
+    }
+
+    // Fallback: hidden file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.sscl';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    input.addEventListener('change', async () => {
+      const file = input.files && input.files[0];
+      document.body.removeChild(input);
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        importData(data);
+        showToast('载入成功！', 'success');
+      } catch (err) {
+        showToast('载入失败：文件格式不正确', 'error');
+        console.error('Load error:', err);
+      }
+    });
+
+    // Handle cancel
+    input.addEventListener('cancel', () => {
+      document.body.removeChild(input);
+    });
+
+    // Also clean up on window focus (in case cancel event doesn't fire)
+    const cleanup = () => {
+      window.removeEventListener('focus', cleanup);
+      setTimeout(() => {
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
+      }, 1000);
+    };
+    window.addEventListener('focus', cleanup);
+
+    input.click();
+  }
+
+  /**
+   * Create a new blank clapperboard document.
+   * Warns about unsaved data first.
+   */
+  function newDocument() {
+    const confirmed = confirm(
+      '新建将清空当前所有页面和数据。\n\n' +
+      '如果当前内容尚未保存，请先点击「保存」。\n\n' +
+      '确定要新建吗？'
+    );
+    if (!confirmed) return;
+
+    // Reset data
+    appData = {
+      projectTitle: '未命名',
+      pages: [createEmptyPage('第1页')],
+      currentPageIndex: 0,
+      exportedRolls: []
+    };
+    appData.pages[0].roll = '1';
+
+    // Clear localStorage
+    localStorage.removeItem(STORAGE_KEY);
+
+    // Refresh UI
+    dom.titleDisplay.textContent = '未命名';
+    dom.titleInput.value = '未命名';
+    refreshPageView();
+    showToast('已新建空白场记单');
+  }
+
+  // ============================================================
+  // Keyboard Shortcuts
+  // ============================================================
+  function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        addRow();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveToStorage();
+        showToast('数据已保存 ✓');
+      }
+    });
+  }
+
+  // ============================================================
+  // Initialization
+  // ============================================================
+  function init() {
+    const loaded = loadFromStorage();
+    if (!loaded) {
+      appData.pages = [createEmptyPage('第1页')];
+      appData.pages[0].roll = '1';
+      appData.currentPageIndex = 0;
+    }
+
+    // Sync display
+    dom.titleDisplay.textContent = appData.projectTitle;
+    setupTitleEditing();
+    setupPageSubHeader();
+    setupKeyboardShortcuts();
+
+    // Initial render
+    refreshPageView();
+
+    // Global event listeners — file operations
+    dom.addRowBtn.addEventListener('click', addRow);
+    dom.saveFileBtn.addEventListener('click', saveToFile);
+    dom.loadFileBtn.addEventListener('click', loadFromFile);
+    dom.newFileBtn.addEventListener('click', newDocument);
+
+    // Global event listeners — exports
+    dom.exportXmlBtn.addEventListener('click', exportXML);
+    dom.exportHtmlBtn.addEventListener('click', exportHTML);
+
+    // Persistence
+    window.addEventListener('beforeunload', () => saveToStorage());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) saveToStorage();
+    });
+
+    console.log('🎬 电子场记单 v3 已就绪');
+    console.log('   💾 自动保存至 localStorage');
+    console.log('   💾 保存/载入 .SSCL 文件（File System Access API）');
+    console.log('   📑 每页独立卡号 & 日期（首页默认卡号 1）');
+    console.log('   📄 XML 导出：弹窗选择卡号（文件名含 Card. 前缀）');
+    console.log('   🌐 HTML 导出：按页分组');
+    console.log('   ⌨️  Ctrl+Enter 增行 | Ctrl+S 保存');
+  }
+
+  // ============================================================
+  // Start
+  // ============================================================
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+
+<!-- ============================================================
+     PWA: Service Worker Registration + Icon Generation
+     ============================================================ -->
+<script>
+(function() {
+  'use strict';
+
+  // ============================================================
+  // Icon Generation (Canvas-based)
+  // ============================================================
+  function generatePwaIcons() {
+    // Check if icons already generated in this session
+    if (sessionStorage.getItem('pwa_icons_generated')) return;
+
+    const iconSizes = [
+      { size: 152, id: 'icon-152' },
+      { size: 167, id: 'icon-167' },
+      { size: 180, id: 'icon-180' },
+      { size: 192, id: 'icon-192' },
+      { size: 512, id: 'icon-512' }
+    ];
+
+    iconSizes.forEach(({ size, id }) => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // Background: dark slate gradient
+        const bgGrad = ctx.createLinearGradient(0, 0, size, size);
+        bgGrad.addColorStop(0, '#1a1a2e');
+        bgGrad.addColorStop(1, '#16213e');
+        ctx.fillStyle = bgGrad;
+        roundRect(ctx, 0, 0, size, size, size * 0.18);
+        ctx.fill();
+
+        // Clapperboard stripe (top diagonal area)
+        const stripeGrad = ctx.createLinearGradient(0, 0, size, size * 0.35);
+        stripeGrad.addColorStop(0, '#ffd54f');
+        stripeGrad.addColorStop(1, '#f9ab00');
+        ctx.fillStyle = stripeGrad;
+        roundRect(ctx, 0, 0, size, size * 0.28, [size * 0.18, size * 0.18, 0, 0]);
+        ctx.fill();
+
+        // Horizontal divider line
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = Math.max(2, size * 0.015);
+        ctx.beginPath();
+        ctx.moveTo(size * 0.08, size * 0.28);
+        ctx.lineTo(size * 0.92, size * 0.28);
+        ctx.stroke();
+
+        // Main character "场" (centered in lower portion)
+        const fontSize = size * 0.38;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold ' + fontSize + 'px "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('场', size * 0.5, size * 0.58);
+
+        // Small subtitle
+        const subFontSize = size * 0.09;
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = subFontSize + 'px "PingFang SC","Microsoft YaHei",sans-serif';
+        ctx.fillText('场记单', size * 0.5, size * 0.78);
+
+        // Convert to blob URL and update link tags
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+
+          // Update link tags
+          const links = document.querySelectorAll('link[href="icons/' + id + '.png"]');
+          links.forEach(link => { link.href = url; });
+
+          // Store in session for later use
+          sessionStorage.setItem('pwa_icon_' + id, url);
+        }, 'image/png');
+      } catch (e) {
+        console.warn('[PWA] Icon generation failed for size ' + size + ':', e);
+      }
+    });
+
+    sessionStorage.setItem('pwa_icons_generated', '1');
+  }
+
+  // Helper: rounded rectangle path
+  function roundRect(ctx, x, y, w, h, r) {
+    if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+    ctx.beginPath();
+    ctx.moveTo(x + r.tl, y);
+    ctx.lineTo(x + w - r.tr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+    ctx.lineTo(x + w, y + h - r.br);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+    ctx.lineTo(x + r.bl, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+    ctx.lineTo(x, y + r.tl);
+    ctx.quadraticCurveTo(x, y, x + r.tl, y);
+    ctx.closePath();
+  }
+
+  // ============================================================
+  // Service Worker Registration
+  // ============================================================
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+      console.log('[PWA] Service Worker not supported in this browser');
+      return;
+    }
+
+    // Only register if served from http/https (not file://)
+    if (location.protocol === 'file:') {
+      console.log('[PWA] Service Worker requires HTTP(S), skipping (file:// protocol)');
+      return;
+    }
+
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .then((registration) => {
+        console.log('[PWA] Service Worker registered:', registration.scope);
+
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[PWA] New version available — refresh to update');
+              // Optionally show update notification to user
+            }
+          });
+        });
+      })
+      .catch((error) => {
+        console.warn('[PWA] Service Worker registration failed:', error);
+      });
+  }
+
+  // ============================================================
+  // Dynamic Manifest Update (for generated icon blob URLs)
+  // ============================================================
+  function updateManifestWithIcons() {
+    // Wait a bit for icon blobs to be generated
+    setTimeout(() => {
+      try {
+        const icon192 = sessionStorage.getItem('pwa_icon_icon-192');
+        const icon512 = sessionStorage.getItem('pwa_icon_icon-512');
+
+        if (icon192 || icon512) {
+          // Create a dynamic manifest with blob URLs
+          const manifest = {
+            name: '电子场记单',
+            short_name: '场记单',
+            description: '影视剧组电子场记单 — DIT 现场数据管理工具',
+            start_url: './index.html',
+            scope: './',
+            display: 'standalone',
+            orientation: 'landscape',
+            background_color: '#f0f2f5',
+            theme_color: '#1a1a2e',
+            lang: 'zh-CN',
+            icons: []
+          };
+
+          if (icon192) manifest.icons.push({ src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' });
+          if (icon512) manifest.icons.push({ src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' });
+
+          const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+          const manifestUrl = URL.createObjectURL(blob);
+          const manifestLink = document.querySelector('link[rel="manifest"]');
+          if (manifestLink) {
+            manifestLink.href = manifestUrl;
+          }
+        }
+      } catch (e) {
+        console.warn('[PWA] Manifest update failed:', e);
+      }
+    }, 600);
+  }
+
+  // ============================================================
+  // Install Button (PWA)
+  // ============================================================
+  let deferredPrompt = null;  // Chrome beforeinstallprompt
+
+  function setupInstallButton() {
+    const btn = document.getElementById('pwaInstallBtn');
+    if (!btn) return;
+
+    // Check if already running in standalone mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         navigator.standalone ||
+                         window.matchMedia('(display-mode: fullscreen)').matches ||
+                         window.matchMedia('(display-mode: minimal-ui)').matches;
+
+    if (isStandalone) {
+      // Already installed — hide button permanently
+      btn.style.display = 'none';
+      return;
+    }
+
+    // Detect platform
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS|OPiOS|mercury/.test(navigator.userAgent);
+
+    // Show the button
+    btn.style.display = 'inline-flex';
+
+    if (isIOS && isSafari) {
+      // iOS Safari: show guide for "Add to Home Screen"
+      btn.addEventListener('click', showIOSInstallGuide);
+    } else {
+      // Chrome/Edge/Android: use beforeinstallprompt
+      btn.addEventListener('click', triggerNativeInstall);
+    }
+
+    // Listen for Chrome's beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btn.style.display = 'inline-flex';
+      // Update the button to indicate native install is available
+      btn.querySelector('.install-label').textContent = '安装应用';
+      btn.title = '一键安装到桌面';
+    });
+
+    // Hide button if app was just installed
+    window.addEventListener('appinstalled', () => {
+      btn.style.display = 'none';
+      deferredPrompt = null;
+      console.log('[PWA] App installed successfully');
+    });
+  }
+
+  function showIOSInstallGuide() {
+    // Remove existing guide if any
+    const existing = document.querySelector('.ios-guide-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'ios-guide-overlay';
+    overlay.innerHTML =
+      '<div class="ios-guide-card">' +
+        '<h3>📲 添加到主屏幕</h3>' +
+        '<p class="guide-subtitle">安装后可以离线使用，拥有独立应用图标</p>' +
+        '<div class="ios-guide-steps">' +
+          '<div class="ios-guide-step">' +
+            '<span class="step-num">1</span>' +
+            '<span class="step-content">点击 Safari 底部工具栏的</span>' +
+            '<span class="step-icon">⎋</span>' +
+          '</div>' +
+          '<div class="ios-guide-step">' +
+            '<span class="step-num">2</span>' +
+            '<span class="step-content">在弹出菜单中向左滑动，找到</span>' +
+          '</div>' +
+          '<div class="ios-guide-step">' +
+            '<span class="step-num">3</span>' +
+            '<span class="step-content">点击 <strong>「添加到主屏幕」</strong></span>' +
+            '<span class="step-icon">➕</span>' +
+          '</div>' +
+          '<div class="ios-guide-step">' +
+            '<span class="step-num">4</span>' +
+            '<span class="step-content">确认名称后点击 <strong>「添加」</strong> 即可</span>' +
+            '<span class="step-icon">✅</span>' +
+          '</div>' +
+        '</div>' +
+        '<button class="ios-guide-close">我知道了</button>' +
+      '</div>';
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target.classList.contains('ios-guide-close')) {
+        overlay.remove();
+      }
+    });
+
+    document.body.appendChild(overlay);
+  }
+
+  async function triggerNativeInstall() {
+    if (deferredPrompt) {
+      // Chrome/Edge native install prompt
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('[PWA] Install prompt result:', outcome);
+      deferredPrompt = null;
+
+      if (outcome === 'accepted') {
+        document.getElementById('pwaInstallBtn').style.display = 'none';
+      }
+    } else {
+      // Fallback for browsers that don't support beforeinstallprompt
+      // Show a generic guide
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (isIOS) {
+        showIOSInstallGuide();
+      } else {
+        // Desktop Chrome/Edge that didn't fire beforeinstallprompt
+        // Guide user to use browser menu
+        showGenericInstallGuide();
+      }
+    }
+  }
+
+  function showGenericInstallGuide() {
+    const existing = document.querySelector('.ios-guide-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'ios-guide-overlay';
+    overlay.innerHTML =
+      '<div class="ios-guide-card">' +
+        '<h3>📲 安装此应用</h3>' +
+        '<p class="guide-subtitle">安装后可离线使用，像原生应用一样</p>' +
+        '<div class="ios-guide-steps">' +
+          '<div class="ios-guide-step">' +
+            '<span class="step-num">1</span>' +
+            '<span class="step-content">点击浏览器地址栏右侧的安装图标</span>' +
+            '<span class="step-icon">💻</span>' +
+          '</div>' +
+          '<div class="ios-guide-step">' +
+            '<span class="step-num">2</span>' +
+            '<span class="step-content">或在浏览器菜单中选择 <strong>「安装电子场记单」</strong></span>' +
+          '</div>' +
+        '</div>' +
+        '<button class="ios-guide-close">我知道了</button>' +
+      '</div>';
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target.classList.contains('ios-guide-close')) {
+        overlay.remove();
+      }
+    });
+
+    document.body.appendChild(overlay);
+  }
+
+  // ============================================================
+  // Initialize PWA features
+  // ============================================================
+  function initPWA() {
+    generatePwaIcons();
+    updateManifestWithIcons();
+    registerServiceWorker();
+    setupInstallButton();
+  }
+
+  // Run after page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPWA);
+  } else {
+    initPWA();
+  }
+
+})();
+</script>
+
+</body>
+</html>
