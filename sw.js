@@ -8,7 +8,7 @@
    ============================================================ */
 
 // ★ 改这里：每次部署 +1 或者改成今天的日期
-const CACHE_VERSION = '20260622-a';
+const CACHE_VERSION = '20260622-b';
 const CACHE_NAME = 'clapperboard-' + CACHE_VERSION;
 const APP_SHELL = [
   './',
